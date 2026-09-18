@@ -33,6 +33,34 @@ inline policy, `diva-app-access`, scoped to exactly what the app needs:
 
 No wildcard resources, and no delete permission — the app never removes data.
 
+
+## Pipeline
+
+| Resource | Identifier |
+| --- | --- |
+| Pipeline | `diva-shoutout-pipeline` (V2, queued execution mode) |
+| Source connection | `diva-github` — `arn:aws:codeconnections:ap-south-1:851725336997:connection/f1ac1085-f248-4b7b-8cb9-d6ad1fa886fb` |
+| Build project | `diva-shoutout-build` — `aws/codebuild/standard:7.0`, BUILD_GENERAL1_SMALL |
+| Deploy application | `diva-shoutout` / deployment group `diva-shoutout-dg` |
+| Artifact bucket | `diva-pipeline-artifacts-851725336997` — versioned, 30-day expiry |
+| Roles | `diva-codebuild-role`, `diva-codedeploy-role`, `diva-codepipeline-role` |
+
+The deployment group targets instances by the tag `Name=diva-shoutout-board`, so
+replacing the instance needs no pipeline change — just the same tag.
+
+Automatic rollback on failure is enabled. `deploy/hooks/validate.sh` polls the
+health endpoint, so a revision that builds but cannot serve is rolled back
+rather than left live.
+
+### Data protection
+
+Point-in-time recovery is enabled on `diva-shoutouts`, and the images bucket is
+versioned. Both were turned on after a cleanup command deleted live posts that
+could not be recovered. Prefer deleting specific keys over a scan-and-delete of
+the whole table.
+
+## Teardown additions
+
 ## Teardown
 
 ```bash
@@ -51,4 +79,21 @@ aws iam delete-role-policy --profile isvadi --role-name diva-ec2-role --policy-n
 aws iam detach-role-policy --profile isvadi --role-name diva-ec2-role \
   --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 aws iam delete-role --profile isvadi --role-name diva-ec2-role
+```
+
+Pipeline resources:
+
+```bash
+P="--profile isvadi --region ap-south-1"
+aws codepipeline delete-pipeline $P --name diva-shoutout-pipeline
+aws codebuild delete-project $P --name diva-shoutout-build
+aws deploy delete-deployment-group $P --application-name diva-shoutout --deployment-group-name diva-shoutout-dg
+aws deploy delete-application $P --application-name diva-shoutout
+aws codeconnections delete-connection $P --connection-arn arn:aws:codeconnections:ap-south-1:851725336997:connection/f1ac1085-f248-4b7b-8cb9-d6ad1fa886fb
+aws s3 rm s3://diva-pipeline-artifacts-851725336997 --recursive --profile isvadi
+aws s3api delete-bucket $P --bucket diva-pipeline-artifacts-851725336997
+for r in codebuild codedeploy codepipeline; do
+  aws iam delete-role-policy --profile isvadi --role-name diva-$r-role --policy-name diva-$r-access 2>/dev/null
+  aws iam delete-role --profile isvadi --role-name diva-$r-role
+done
 ```
