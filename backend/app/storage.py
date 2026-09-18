@@ -14,11 +14,22 @@ _boto_config = BotoConfig(
     region_name=config.AWS_REGION,
     retries={"max_attempts": 3, "mode": "standard"},
     signature_version="s3v4",
+    s3={"addressing_style": "virtual"},
 )
 
-_dynamodb = boto3.resource("dynamodb", config=_boto_config)
+_session = boto3.session.Session(region_name=config.AWS_REGION)
+_dynamodb = _session.resource("dynamodb", config=_boto_config)
 _table = _dynamodb.Table(config.TABLE_NAME)
-_s3 = boto3.client("s3", config=_boto_config)
+
+# The endpoint is pinned to the region on purpose. Left to resolve on its own,
+# boto3 signs against the global s3.amazonaws.com host and S3 answers presigned
+# GETs with TemporaryRedirect, which a browser <img> cannot follow.
+_s3 = _session.client(
+    "s3",
+    region_name=config.AWS_REGION,
+    endpoint_url=config.S3_ENDPOINT_URL,
+    config=_boto_config,
+)
 
 
 def _now_iso() -> str:

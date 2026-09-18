@@ -12,6 +12,9 @@ def _int(name: str, default: int) -> int:
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
 TABLE_NAME = os.environ.get("SHOUTOUTS_TABLE", "diva-shoutouts")
 BUCKET_NAME = os.environ.get("IMAGES_BUCKET", "")
+S3_ENDPOINT_URL = os.environ.get(
+    "S3_ENDPOINT_URL", f"https://s3.{AWS_REGION}.amazonaws.com"
+)
 
 # Every shoutout shares one partition so the board reads back as a single
 # time-ordered feed. Fine at demo scale; shard the key if traffic ever grows.

@@ -90,6 +90,10 @@ npm install
 npm run dev
 ```
 
+If your local AWS credentials come from `aws login` rather than a role or static
+keys, botocore needs `pip install "botocore[crt]"` to read them. The instance
+itself uses its IAM role, so it does not need that extra.
+
 ## Deployment
 
 `deploy/bootstrap.sh` runs once from EC2 user-data: it installs nginx, Python

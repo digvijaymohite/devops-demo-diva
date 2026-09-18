@@ -45,14 +45,24 @@ def client_ip(request: Request) -> str:
 
 
 def rate_limited(ip: str) -> bool:
+    """Check the quota without consuming it.
+
+    Only stored posts count, so someone correcting a typo five times is not
+    locked out of the board for the rest of the window.
+    """
     now = time.monotonic()
     window = _post_history[ip]
     while window and now - window[0] > config.RATE_LIMIT_WINDOW_SECONDS:
         window.popleft()
-    if len(window) >= config.RATE_LIMIT_POSTS:
-        return True
-    window.append(now)
-    return False
+    if not window:
+        # Drop the empty deque the defaultdict just created; otherwise the map
+        # grows one entry per IP that ever touched the endpoint.
+        _post_history.pop(ip, None)
+    return len(window) >= config.RATE_LIMIT_POSTS
+
+
+def record_post(ip: str) -> None:
+    _post_history[ip].append(time.monotonic())
 
 
 def error(status: int, message: str, field: str | None = None) -> JSONResponse:
@@ -136,6 +146,7 @@ async def create_shoutout(
         logger.exception("failed to save shoutout")
         return error(503, "Could not save your shoutout. Please try again.")
 
+    record_post(ip)
     logger.info("shoutout %s posted by %s %s (image=%s)", item["id"], first, last,
                 bool(image_key))
     return storage.to_public(item)
