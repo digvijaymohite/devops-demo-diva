@@ -17,8 +17,9 @@ id -u shoutout &>/dev/null || useradd --system --home-dir "$APP_ROOT" --shell /s
 mkdir -p "$APP_ROOT"
 
 # The tree is owned by the shoutout user while these scripts run as root,
-# so git needs an explicit exception before it will touch it.
-git config --global --add safe.directory "$APP_DIR"
+# so git needs an explicit exception before it will touch it. Use --system:
+# SSM runs commands with HOME unset, so --global has nowhere to write.
+git config --system --add safe.directory "$APP_DIR"
 
 if [ -d "$APP_DIR/.git" ]; then
   git -C "$APP_DIR" fetch --all --prune
