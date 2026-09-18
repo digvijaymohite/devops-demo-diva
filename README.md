@@ -16,7 +16,9 @@ carry an optional photo.
                                                        presigned GET URLs
 ```
 
-Everything runs on a single EC2 instance in `ap-south-1`.
+Everything runs on a single EC2 instance in `ap-south-1`. The live board is at
+<http://13.235.101.184/>. Concrete resource ids and teardown steps are in
+[infra/RESOURCES.md](infra/RESOURCES.md).
 
 | Piece | Resource |
 | --- | --- |
