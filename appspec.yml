@@ -1,0 +1,31 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /opt/shoutout/release
+
+file_exists_behavior: OVERWRITE
+
+hooks:
+  # Runs from the previous revision, so it is skipped on the first deployment.
+  ApplicationStop:
+    - location: deploy/hooks/stop.sh
+      timeout: 60
+      runas: root
+  BeforeInstall:
+    - location: deploy/hooks/before_install.sh
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: deploy/hooks/after_install.sh
+      timeout: 600
+      runas: root
+  ApplicationStart:
+    - location: deploy/hooks/start.sh
+      timeout: 120
+      runas: root
+  ValidateService:
+    - location: deploy/hooks/validate.sh
+      timeout: 180
+      runas: root

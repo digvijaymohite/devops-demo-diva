@@ -1,0 +1,38 @@
+version: 0.2
+
+# Builds the React bundle and packages it with the backend source so the
+# instance never needs Node or a network fetch at deploy time.
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+      python: 3.11
+  pre_build:
+    commands:
+      - echo "Backend syntax check"
+      - python3 -m compileall -q backend/app
+      - echo "Installing frontend dependencies"
+      - cd "$CODEBUILD_SRC_DIR/frontend"
+      - npm ci --no-audit --no-fund
+  build:
+    commands:
+      - echo "Building frontend"
+      - npm run build
+  post_build:
+    commands:
+      - cd "$CODEBUILD_SRC_DIR"
+      # Fail the build rather than shipping an empty bundle.
+      - test -s frontend/dist/index.html
+      - ls -la frontend/dist
+
+artifacts:
+  files:
+    - appspec.yml
+    - backend/**/*
+    - frontend/dist/**/*
+    - deploy/**/*
+
+cache:
+  paths:
+    - 'frontend/node_modules/**/*'

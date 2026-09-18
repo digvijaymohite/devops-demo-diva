@@ -102,15 +102,35 @@ itself uses its IAM role, so it does not need that extra.
 3.11 and Node 20, clones this repo, builds the frontend, and starts
 `shoutout-api` under systemd behind nginx.
 
-To ship a change, push to `main` and re-run the deploy script on the instance:
+### Continuous deployment
 
-```bash
-aws ssm send-command \
-  --profile isvadi --region ap-south-1 \
-  --instance-ids <instance-id> \
-  --document-name AWS-RunShellScript \
-  --parameters 'commands=["bash /opt/shoutout/app/deploy/redeploy.sh"]'
-```
+Any commit to `main` ships automatically. `diva-shoutout-pipeline` watches the
+repo through a CodeStar connection and runs three stages:
+
+| Stage | What happens |
+| --- | --- |
+| Source | CodeStar connection pulls the commit from GitHub |
+| Build | CodeBuild runs `buildspec.yml` — backend syntax check, `npm ci`, `npm run build` |
+| Deploy | CodeDeploy pushes the bundle to the instance via `appspec.yml` |
+
+CodeBuild produces the React bundle, so the instance needs neither Node nor a
+network fetch at deploy time and `deploy/bootstrap.sh` only has to prepare the
+host. The deploy hooks live in `deploy/hooks/`:
+
+| Hook | Role |
+| --- | --- |
+| `stop.sh` | Stops the service; tolerates it being absent |
+| `before_install.sh` | Ensures the service user and directories exist |
+| `after_install.sh` | Syncs the venv, publishes the bundle, installs unit and nginx config |
+| `start.sh` | Starts the API and reloads nginx |
+| `validate.sh` | Polls `/api/health` and `/`; a failure fails the deployment |
+
+`validate.sh` is what makes a rollback meaningful — the deployment group has
+automatic rollback on failure, so a revision that cannot serve traffic is
+replaced by the last good one instead of staying live.
+
+The release lives at `/opt/shoutout/release`; the virtualenv sits outside it at
+`/opt/shoutout/venv` so it survives deployments.
 
 Open a shell on the box with `aws ssm start-session --target <instance-id>`.
 

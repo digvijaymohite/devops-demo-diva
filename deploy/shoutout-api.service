@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=shoutout
 Group=shoutout
-WorkingDirectory=/opt/shoutout/app/backend
+WorkingDirectory=/opt/shoutout/release/backend
 EnvironmentFile=/etc/shoutout.env
 # One worker on purpose: the per-IP rate limiter is in-process, so extra
 # workers would multiply the effective limit.
