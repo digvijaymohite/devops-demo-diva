@@ -40,7 +40,7 @@ export default function App() {
     <div className="page">
       <header className="masthead">
         <div className="masthead__inner">
-          <h1>Shoutout Board</h1>
+          <h1>Shoutout Board For Div A</h1>
           <p>Celebrate a classmate. Anyone can post — just sign it with your name.</p>
         </div>
       </header>
