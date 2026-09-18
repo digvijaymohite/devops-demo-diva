@@ -1,0 +1,24 @@
+[Unit]
+Description=Shoutout Board API (FastAPI/uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shoutout
+Group=shoutout
+WorkingDirectory=/opt/shoutout/app/backend
+EnvironmentFile=/etc/shoutout.env
+# One worker on purpose: the per-IP rate limiter is in-process, so extra
+# workers would multiply the effective limit.
+ExecStart=/opt/shoutout/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/shoutout
+
+[Install]
+WantedBy=multi-user.target
